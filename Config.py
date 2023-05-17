@@ -5,6 +5,7 @@
 # @File : Config.py
 # @desc : 配置类
 
+
 class Config:
     """模型配置参数类"""
     # 模型输入参数
