@@ -8,9 +8,6 @@
 import os
 
 
-def get_sub_files(directory):
-    files = []
-    for dirpath, dirnames, filenames in os.walk(directory):
-        for filename in filenames:
-            files.append(os.path.join(dirpath, filename))
-    return files
+def get_sub_files(path):
+    """ 获取路径下所有子文件 """
+    return [os.path.join(path, f) for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]

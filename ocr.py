@@ -6,15 +6,18 @@
 # @desc : ocr 封装
 
 import os
+from collections import generator
 
 import cv2
 import numpy as np
 import math
 
-import Config as config
+import yaml
+import argparse
 import tensorflow as tf
 from keras import Input
 from keras import layers
+from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from scipy import ndimage
 from tensorflow import keras
 from keras.layers import Dense, Conv2D, MaxPooling2D, ZeroPadding2D, AveragePooling2D
@@ -24,6 +27,34 @@ from tensorflow.python.keras import models
 import file_utils
 
 imagePath = './data/form.png'
+
+
+def dict2namespace(config):
+    """将字典转换为命名空间对象"""
+    namespace = argparse.Namespace()
+    for key, value in config.items():
+        if isinstance(value, dict):
+            setattr(namespace, key, dict2namespace(value))
+        else:
+            setattr(namespace, key, value)
+    return namespace
+
+
+def load_annotation(annotation_file, image_dir):
+    """ 从标注文件加载图像与标注框信息 """
+    with open(annotation_file, 'r') as f:
+        content = f.readlines()
+    # 跳过前两行注释
+    content = content[2:]
+    annotation = {'image_path': '', 'boxes': []}
+    for line in content:
+        line_parts = line.split(',')
+        if len(line_parts) == 1:  # 存储 image_path
+            annotation['image_path'] = os.path.join(image_dir, line.strip())
+        else:  # 存储标注框信息
+            x1, y1, x2, y2, x3, y3, x4, y4 = map(int, line_parts[:8])
+            annotation['boxes'].append([x1, y1, x2, y2, x3, y3, x4, y4])
+    return annotation
 
 
 # 图像预处理
@@ -67,7 +98,7 @@ def img_initialize(image_path):
     return binary_image
 
 
-# ResNet 网络骨架替换
+# 第一步 ResNet 网络骨架替换 得到的 conv5_x 特征作为特征图像（feature map），输出大小为 14×14×1024；
 def resnet50(image_input):
     bn_axis = 3
     # 构建卷积神经网络
@@ -105,7 +136,23 @@ def resnet50(image_input):
     return x
 
 
-# 定义ResNet
+# 第二步 将一个 3x3 大小的卷积核在 x 上进行滑动，得到一个 14x14x1024 大小的输出。
+def extract_local_features(features):
+    # 定义滑动窗口的参数
+    kernel_size = (3, 3)
+
+    # 定义滑动窗口的卷积层
+    conv_layer = Conv2D(filters=1024,
+                        kernel_size=kernel_size,
+                        padding='same',
+                        activation='relu')
+
+    # 在特征图像上进行滑动窗口操作
+    local_features = conv_layer(features)
+
+    return local_features
+
+
 def identity_block(input_tensor, kernel_size, filters, stage, block):
     filters1, filters2, filters3 = filters
     conv_name_base = 'res' + str(stage) + block + '_branch'
@@ -155,14 +202,52 @@ def set_gpu_growth():
                 print(e)
 
 
+def get_call_back():
+
+    # 每隔 2 个 epoch 保存一下权重
+    ckpt = ModelCheckpoint(
+        filepath='/path/to/save/weights.h5',
+        monitor='val_loss',
+        verbose=1,
+        save_best_only=True,
+        save_weights_only=True,
+        mode='min',
+        period=2
+    )
+
+    # 学习率逐步降低的回调函数
+    lr_schedule = LearningRateScheduler(
+        lambda epoch: 1e-3 * (0.1 ** (epoch // 10))
+    )
+
+    # 网络训练过程中记录训练日志的回调函数
+    class LossHistory(tf.keras.callbacks.Callback):
+        def on_train_begin(self, logs={}):
+            self.losses = []
+            self.val_losses = []
+
+        def on_epoch_end(self, epoch, logs={}):
+            self.losses.append(logs.get('loss'))
+            self.val_losses.append(logs.get('val_loss'))
+
+    history = LossHistory()
+
+    callbacks = [ckpt, lr_schedule, history]
+
+    return callbacks
+
+
 def main(args):
+    with open('config.yml') as f:
+        config = dict2namespace(yaml.safe_load(f))
+
     set_gpu_growth()
     # 载入标注文件
-    annotation_files = file_utils.get_sub_files(config.TRAIN_LABEL_PATH)
-    image_annotations = [reader.load_annotation(file, config.TRAIN_IMAGE_PATH) for file in annotation_files]
+    annotation_files = file_utils.get_sub_files(config.TRAIN_ANNOTATION_PATH)
+    image_annotations = [load_annotation(file, config.TRAIN_IMAGE_PATH) for file in annotation_files]
     # 删除错误的图像和标注路径
     image_annotations = [ann for ann in image_annotations if os.path.exists(ann['image_path'])]
-    # 加载预训练模型，训练设置参数在 config.py 文件中
+    # 加载预训练模型，训练设置参数在 config.yml 文件中
     m = models.ctpn_net(config, 'train')
     models.compile(m, config, loss_names=['ctpn_regress_loss', 'ctpn_class_loss',
                                           'side_regress_loss'])
