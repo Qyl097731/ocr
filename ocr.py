@@ -20,7 +20,8 @@ from keras import layers
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from scipy import ndimage
 from tensorflow import keras
-from keras.layers import Dense, Conv2D, MaxPooling2D, ZeroPadding2D, AveragePooling2D
+from keras.layers import Dense, Conv2D, MaxPooling2D, ZeroPadding2D, AveragePooling2D, LSTM, concatenate, \
+    TimeDistributed
 from keras.layers import Activation, BatchNormalization, Flatten
 from tensorflow.python.keras import models
 
@@ -137,7 +138,7 @@ def resnet50(image_input):
 
 
 # 第二步 将一个 3x3 大小的卷积核在 x 上进行滑动，得到一个 14x14x1024 大小的输出。
-def extract_local_features(features):
+def extract_feature_vector(features):
     # 定义滑动窗口的参数
     kernel_size = (3, 3)
 
@@ -148,9 +149,35 @@ def extract_local_features(features):
                         activation='relu')
 
     # 在特征图像上进行滑动窗口操作
-    local_features = conv_layer(features)
+    feature_vector = conv_layer(features)
 
-    return local_features
+    return feature_vector
+
+
+# 第三步，双向LSTM
+def feed_to_rnn(features):
+    # 定义一个正向 LSTM 层，包含 128 个隐层，并返回完整的输出序列
+    lstm_fw = LSTM(units=128, return_sequences=True)
+
+    # 定义一个反向 LSTM 层，包含 128 个隐层，并返回完整的输出序列
+    lstm_bw = LSTM(units=128, return_sequences=True, go_backwards=True)
+
+    # 通过正向和反向 LSTM 层，从输入的特征向量序列中提取序列特征
+    rnn_outputs_fw = lstm_fw(features)
+    rnn_outputs_bw = lstm_bw(features)
+
+    # 将正向和反向 LSTM 的输出连接在一起，并形成一个完整的输出序列
+    rnn_outputs = concatenate([rnn_outputs_fw, rnn_outputs_bw], axis=-1)
+
+    return rnn_outputs
+
+
+# 第四步 输入FC层
+def add_fc_layer(rnn_outputs):
+    # 定义一个全连接层，输入 14x256 大小的 RNN 输出序列，输出 14x10 的特征向量序列
+    fc_layer = TimeDistributed(Dense(units=10, activation='linear'))
+    output = fc_layer(rnn_outputs)
+    return output
 
 
 def identity_block(input_tensor, kernel_size, filters, stage, block):
@@ -203,7 +230,6 @@ def set_gpu_growth():
 
 
 def get_call_back():
-
     # 每隔 2 个 epoch 保存一下权重
     ckpt = ModelCheckpoint(
         filepath='/path/to/save/weights.h5',
@@ -326,6 +352,21 @@ def main(args):
 
 
 if __name__ == '__main__':
-    image = img_initialize(imagePath)
-    image_input = Input(shape=(224, 244, 1))
-    image_input = resnet50(image_input=image_input)
+    grey_image = img_initialize(imagePath)
+
+    resized_gray = cv2.resize(grey_image, (224, 224))
+
+    # 将缩放后的灰度图像转换为 RGB 图像
+    resized_rgb = cv2.cvtColor(resized_gray, cv2.COLOR_GRAY2RGB)
+
+    # 对 RGB 图像进行归一化处理
+    resized_rgb = resized_rgb.astype("float32") / 255.0
+
+    # 将整个图像的像素值减去 ImageNet 数据集的均值
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+    resized_rgb -= mean
+    resized_rgb /= std
+
+    image_input = resnet50(image_input=resized_rgb)
+    feature_vector = extract_feature_vector(resized_rgb)
