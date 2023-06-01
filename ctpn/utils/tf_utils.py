@@ -20,7 +20,16 @@ def batch_slice(inputs, graph_fn, batch_size, names=None):
     if not isinstance(inputs, list):
         inputs = [inputs]
 
-    outputs = tf.map_fn(lambda x: graph_fn(*x), elems=inputs, dtype=tf.float32, parallel_iterations=batch_size)
+    outputs = []
+    for i in range(batch_size):
+        inputs_slice = [x[i] for x in inputs]
+        output_slice = graph_fn(*inputs_slice)
+        if not isinstance(output_slice, (tuple, list)):
+            output_slice = [output_slice]
+        outputs.append(output_slice)
+
+    # 行转列
+    outputs = list(zip(*outputs))
 
     if names is None:
         names = [None] * len(outputs)

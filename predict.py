@@ -52,7 +52,7 @@ def main(args):
     visualize.display_polygons(image, text_lines[:boxes_num, :8], text_lines[:boxes_num, 8],
                                ax=ax)
     image_name = os.path.basename(args.image_path)
-    fig.savefig('{}.{}.jpg'.format(os.path.splitext(image_name)[0], int(config.USE_SIDE_REFINE)))
+    fig.savefig('{}.{}.jpg'.format(os.path.splitext(image_name)[0] + str(config.ANCHORS_WIDTH), int(config.USE_SIDE_REFINE)))
 
 
 if __name__ == '__main__':

@@ -158,7 +158,7 @@ def compile(keras_model, config, loss_names=[]):
         loss = (
                 tf.reduce_mean(layer.output, keepdims=True)
                 * config.LOSS_WEIGHTS.get(name, 1.))
-        keras_model.metrics_tensors.append(loss)
+        keras_model.metrics.append(loss)
 
 
 def add_metrics(keras_model, metric_name_list, metric_tensor_list):
@@ -171,4 +171,4 @@ def add_metrics(keras_model, metric_name_list, metric_tensor_list):
     """
     for name, tensor in zip(metric_name_list, metric_tensor_list):
         keras_model.metrics_names.append(name)
-        keras_model.metrics_tensors.append(tf.reduce_mean(tensor, keepdims=False))
+        keras_model.metrics.append(tf.reduce_mean(tensor, keepdims=False))

@@ -28,7 +28,7 @@ class Config(object):
     TEXT_PROPOSALS_WIDTH = 16
     # text line boxes超参数
     LINE_MIN_SCORE = 0.7
-    MAX_HORIZONTAL_GAP = 50
+    MAX_HORIZONTAL_GAP = 10
     TEXT_LINE_NMS_THRESH = 0.3
     MIN_NUM_PROPOSALS = 1
     MIN_RATIO = 1.2
@@ -52,11 +52,11 @@ class Config(object):
     # 预训练模型
     PRE_TRAINED_WEIGHT = './pretrained_model/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5'
 
-    WEIGHT_PATH = './ctpn.h5'
+    WEIGHT_PATH = './ctpn/ctpn.100.h5'
 
     # 数据集路径
-    IMAGE_DIR = '../data/ICDAR_2017/train_images/'
-    IMAGE_GT_DIR = '../data/ICDAR_2017/train_gt/'
+    IMAGE_DIR = './data/ICDAR_2017/train_images'
+    IMAGE_GT_DIR = './data/ICDAR_2017/train_gts'
 
 
 cur_config = Config()

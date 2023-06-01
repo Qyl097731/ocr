@@ -32,7 +32,7 @@ def get_call_back():
     定义call back
     :return:
     """
-    checkpoint = ModelCheckpoint(filepath='/tmp/ctpn.{epoch:03d}.h5',
+    checkpoint = ModelCheckpoint(filepath='./ctpn.h5',
                                  monitor='val_loss',
                                  verbose=1,
                                  save_best_only=False,
@@ -93,10 +93,7 @@ def main(args):
                     callbacks=get_call_back(),
                     workers=2,
                     use_multiprocessing=True)
-    # 模型评估
-    score = m.evaluate(gen, verbose=True)
-    print('Test score:', score[0])
-    print('Test accuracy:', score[1])
+
     # 保存模型
     m.save(config.WEIGHT_PATH)
 

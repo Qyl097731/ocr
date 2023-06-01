@@ -5,11 +5,12 @@
 # @File : image_utils.py
 # @desc : 图像处理工具类
 
-import skimage
-from skimage import io, transform
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+
+import skimage
+from skimage import transform
 
 
 def load_image(image_path):

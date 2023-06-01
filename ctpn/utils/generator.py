@@ -6,7 +6,7 @@
 # @desc : 生成器
 
 import numpy as np
-from ..utils import image_utils, np_utils, gt_utils
+from ctpn.utils import image_utils, np_utils, gt_utils
 
 
 def generator(image_annotations, batch_size, image_shape, width_stride,
