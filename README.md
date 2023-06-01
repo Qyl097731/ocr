@@ -1,5 +1,15 @@
 # orc 项目
 
+## 环境
+
+Window10、tensorflow1.15.0、keras2.3.1
+
+## 数据集
+
+ICDAR 2015
+
+ICDAR 2017（待训练）
+
 ## 代码规范
 
 Python 代码遵循 PEP8 规范，提高代码的可读性和可维护性：
