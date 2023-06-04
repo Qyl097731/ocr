@@ -12,7 +12,7 @@ from keras.layers import ZeroPadding2D
 from keras.activations import relu
 
 
-def keras_crnn(imgH, nc, nclass, nh, n_rnn=2, leaky_relu=False, lstm_flag=True):
+def keras_crnn(imgH, nc, nclass, nh, n_rnn=2, leaky_relu=False):
     data_format = 'channels_first'  # 设置通道维靠前
     kernel_size = [3, 3, 3, 3, 3, 3, 2]  # 各卷积层卷积尺寸
     padding_size = [1, 1, 1, 1, 1, 1, 0]  # padding
@@ -46,40 +46,31 @@ def keras_crnn(imgH, nc, nclass, nh, n_rnn=2, leaky_relu=False, lstm_flag=True):
         return x
 
     x = image_input
-    x = conv_relu(0, batchNormalization=False, x=x)
+    x = conv_relu(0, batch_normalization=False, x=x)
     x = MaxPool2D(pool_size=(2,
                              2), name='cnn.pooling{0}'.format(0), padding='valid', data_format=data_format)(
         x)
-    x = conv_relu(1, batchNormalization=False, x=x)
+    x = conv_relu(1, batch_normalization=False, x=x)
     x = MaxPool2D(pool_size=(2,
                              2), name='cnn.pooling{0}'.format(1), padding='valid', data_format=data_format)(
         x)
-    x = conv_relu(2, batchNormalization=True, x=x)
-    x = conv_relu(3, batchNormalization=False, x=x)
+    x = conv_relu(2, batch_normalization=True, x=x)
+    x = conv_relu(3, batch_normalization=False, x=x)
     x = ZeroPadding2D(padding=(0, 1), data_format=data_format)(x)
     x = MaxPool2D(pool_size=(2,
                              2), strides=(2, 1), padding='valid', name='cnn.pooling{0}'.format(2), data_format
                   =data_format)(x)
-    x = conv_relu(4, batchNormalization=True, x=x)
-    x = conv_relu(5, batchNormalization=False, x=x)
+    x = conv_relu(4, batch_normalization=True, x=x)
+    x = conv_relu(5, batch_normalization=False, x=x)
     x = ZeroPadding2D(padding=(0, 1), data_format=data_format)(x)
     x = MaxPool2D(pool_size=(2,
                              2), strides=(2, 1), padding='valid', name='cnn.pooling{0}'.format(3), data_format
                   =data_format)(x)
-    x = conv_relu(6, batchNormalization=True, x=x)
+    x = conv_relu(6, batch_normalization=True, x=x)
     x = Permute((3, 2, 1))(x)
     x = Reshape((-1, 512))(x)
 
-    out = None
-    if lstm_flag:
-        x = Bidirectional(LSTM(nh, return_sequences=True, use_bias=True,
-                               recurrent_activation='sigmoid'))(x)
-        x = TimeDistributed(Dense(nh))(x)
-        x = Bidirectional(LSTM(nh, return_sequences=True, use_bias=True,
-                               recurrent_activation='sigmoid'))(x)
-        out = TimeDistributed(Dense(nclass))(x)
-    else:
-        out = Dense(nclass, name='linear')(x)
+    out = Dense(nclass, name='linear')(x)
     out = Reshape((-1, 1, nclass), name='out')(out)
 
     return Model(image_input, out)

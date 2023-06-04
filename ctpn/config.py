@@ -50,7 +50,7 @@ class Config(object):
     # 是否使用侧边改善
     USE_SIDE_REFINE = True
     # 预训练模型
-    PRE_TRAINED_WEIGHT = './pretrained_model/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5'
+    PRE_TRAINED_WEIGHT = './ctpn/pretrained_model/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5'
 
     WEIGHT_PATH = './ctpn/ctpn.100.h5'
 

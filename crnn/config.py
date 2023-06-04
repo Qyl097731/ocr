@@ -1,8 +1,8 @@
 import os
 
 ########################文字检测########################
-##文字检测引擎 
-pwd = os.getcwd()
+##文字检测引擎
+# pwd = os.getcwd()
 # print(pwd)
 pwd = os.path.dirname(os.path.abspath(__file__))  # 从这2个打印看出来,永远不要用getcwd,很垃圾!要用本行方法来读路径
 print(pwd)
@@ -41,9 +41,10 @@ AngleModelPbtxt = os.path.join(pwd, "models", "Angle-model.pbtxt")
 # OCR模型是否调用LSTM层
 LSTMFLAG = True
 # 模型选择 True:中英文模型 False:英文模型
-ocrFlag = 'keras'  # ocr模型 支持 keras  torch版本
+ocrFlag = 'keras'  # ocr模型 支持 keras
 chinsesModel = True
-ocrModelKeras = os.path.join(pwd, "models", "ocr-dense-keras.h5")  # keras版本OCR，暂时支持dense
+# 由ocr-dense.pth模型转换而来的 ocr-lstm.pth 表示完成的CRNN模型训练得到的权重文件
+ocrModelKeras = os.path.join(pwd, "models", "ocr-dense-keras.h5")
 if chinsesModel:
     if LSTMFLAG:
         ocrModel = os.path.join(pwd, "models", "ocr-lstm.pth")  # 这个就是需要的模型!!
